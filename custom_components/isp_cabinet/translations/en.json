@@ -1,0 +1,25 @@
+{
+  "config": {
+    "title": "ISP Cabinet",
+    "step": {
+      "user": {
+        "data": {
+          "isp": "Internet Service Provider",
+          "username": "Username",
+          "password": "Password"
+        },
+        "description": "Select your ISP from the list and enter credentials that you use to access corresponding control panel. All contracts tied to your user will be loaded.",
+        "title": "ISP Login"
+      }
+    },
+    "errors": {
+      "invalid_credentials": "Invalid credentials provided. Please, check your input and try again."
+    },
+    "abort": {
+      "already_exists": "Entry with the same ISP identifier and user already exists!",
+      "isp_not_supported": "ISP identifier `%s` does not match any supported ISP.",
+      "invalid_server_response": "Invalid server response. Please, check your internet connection.\nShould this operation fail multiple times, consider raising an issue on component's GitHub Issues page.",
+      "unknown_error": "Unknown error occurred. Please, check log for details."
+    }
+  }
+}

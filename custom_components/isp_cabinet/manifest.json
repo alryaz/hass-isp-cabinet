@@ -1,0 +1,15 @@
+{
+    "domain": "isp_cabinet",
+    "name": "ISP Cabinet",
+    "documentation": "https://github.com/alryaz/hass-isp-cabinet",
+    "dependencies": [],
+    "issue_tracker": "https://github.com/alryaz/hass-isp-cabinet/issues",
+    "codeowners": [
+        "@alryaz"
+    ],
+    "config_flow": true,
+    "requirements": [
+        "fake_useragent==0.1.*",
+        "lxml==4.5.*"
+    ]
+}
