@@ -1,19 +1,17 @@
 from datetime import datetime
-from typing import Dict, List, Tuple, Any
+from typing import Tuple, Optional
 
 import aiohttp
 from lxml import html
 
-from custom_components.isp_cabinet.errors import InvalidServerResponseError
-from custom_components.isp_cabinet.supported_isps.base import _ISPHTTPConnector, register_isp_connector, \
-    _ISPSingleContractConnector, _ISPGenericContract, Payment, Invoice, _ISPGenericTariff, _ISPService
-
-ContractDataType = Dict[str, Any]
-TariffDataType = Dict[str, Any]
+from ..errors import InvalidServerResponseError
+from .base import _ISPHTTPConnector, register_isp_connector, \
+    InvoicesDataType, PaymentsDataType, ServicesDataType, ContractDataType, TariffDataType, \
+    _ISPGenericSingleContractConnector, format_float
 
 
 @register_isp_connector
-class SkyEngineeringConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
+class SkyEngineeringConnector(_ISPGenericSingleContractConnector, _ISPHTTPConnector):
     isp_identifiers = ['sky_engineering', 'sky_en']
     isp_title = "Sky Engineering"
 
@@ -52,11 +50,12 @@ class SkyEngineeringConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
             if request.status != 200:
                 raise InvalidServerResponseError(self)
 
-    @staticmethod
-    def _format_float(float_string: str) -> float:
-        return float(float_string.strip().replace(' ', '').replace(',', '.'))
-
-    async def _get_contract_tariff_data(self) -> Tuple[str, 'ContractDataType', 'TariffDataType']:
+    async def _get_contract_tariff_data(self) -> Tuple[str,
+                                                       ContractDataType,
+                                                       TariffDataType,
+                                                       Optional[ServicesDataType],
+                                                       Optional[PaymentsDataType],
+                                                       Optional[InvoicesDataType]]:
         async with aiohttp.ClientSession(cookie_jar=self._cookies) as session:
             lk_welcome_url = self.BASE_LK_URL + '/welcome-2/'
             async with session.get(lk_welcome_url) as request:
@@ -78,14 +77,14 @@ class SkyEngineeringConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
                 contract_data['client'] = contract_info_parts_roots[0].find('p').text.strip()
 
                 current_balance_parts = contract_info_parts_roots[2].findall('p')
-                contract_data['current_balance'] = self._format_float(
+                contract_data['current_balance'] = format_float(
                     current_balance_parts[1].text
                 )
                 contract_data['payment_until'] = datetime.strptime(
                     current_balance_parts[2].find('small').text.strip().split(' ')[-1],
                     '%d.%m.%Y'
                 ).date()
-                contract_data['payment_suggested'] = self._format_float(
+                contract_data['payment_suggested'] = format_float(
                     contract_info_parts_roots[3].findall('p')[1].text
                 )
 
@@ -104,32 +103,4 @@ class SkyEngineeringConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
             except (IndexError, KeyError):
                 raise InvalidServerResponseError(self)
 
-            return contract_code, contract_data, tariff_data
-
-
-class SkyEngineeringContract(_ISPGenericContract):
-    @property
-    def invoices(self) -> List[Invoice]:
-        return []
-
-    @property
-    def services(self) -> List['SkyEngineeringService']:
-        return []
-
-    @property
-    def payments(self) -> List[Payment]:
-        return []
-
-
-SkyEngineeringConnector.contract_class = SkyEngineeringContract
-
-
-class SkyEngineeringTariff(_ISPGenericTariff):
-    pass
-
-
-class SkyEngineeringService(_ISPService):
-    pass
-
-
-SkyEngineeringConnector.tariff_class = SkyEngineeringTariff
+            return contract_code, contract_data, tariff_data, None, None, None

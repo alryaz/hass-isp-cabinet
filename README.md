@@ -25,7 +25,7 @@
 | [Almatel<br>Альмател](https://almatel.ru) | `almatel`<br>`2kom` | Да<sup>1</sup> | Да | Да | Да | Да
 | [SevenSky<br>ГорКом](https://seven-sky.net) | `sevensky`<br>`gorcom` | Да<sup>1</sup> | Да | Нет | Да | Да |
 | [Sky Engineering](http://sky-en.ru) | `sky_engineering` | Да | Нет | Нет | Нет | Да |
-| МГТС | _в разработке_ |
+| [МГТС](https://mgts.ru) | `mgts`<br>`mts` | Да<sup>1</sup> | Да | Нет | Нет | Да
 | Акадо | _в разработке_ |
 
 <sup>1</sup> Атрибут вычисляется посредством вычета текущего состояния баланса из ежемесячной стоимости тарифа.

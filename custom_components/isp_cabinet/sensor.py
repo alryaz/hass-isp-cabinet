@@ -5,6 +5,7 @@ from datetime import timedelta, datetime, date
 from typing import Callable, Optional, Dict, Any, TYPE_CHECKING, Iterable, Tuple, Union
 
 from homeassistant import config_entries
+from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import CONF_USERNAME, CONF_SCAN_INTERVAL, CONF_PASSWORD, ATTR_ATTRIBUTION, STATE_UNAVAILABLE
 from homeassistant.exceptions import PlatformNotReady, ConfigEntryNotReady
 from homeassistant.helpers import ConfigType
@@ -44,9 +45,12 @@ def _create_updater(connector_instance: '_ISPConnector',
             contracts = await connector_instance.get_contracts()
 
         except ISPCabinetException:
+            _LOGGER.exception('Exception occured:')
             for entity in created_entities.values():
                 if entity.available:
                     entity.state = STATE_UNAVAILABLE
+                    entity.async_schedule_update_ha_state()
+            return False
 
 
         # Create new entities

@@ -1,22 +1,20 @@
 import json
 import re
 from datetime import datetime
-from typing import List, Optional, Dict, Tuple, Any
+from typing import List, Optional, Dict, Tuple
 
 import aiohttp
 from lxml import html
 
-from .base import _ISPContract, requires_authentication, register_isp_connector, _ISPService, \
-    _ISPHTTPConnector, _ISPSingleContractConnector, _ISPGenericContract, _ISPGenericTariff, Invoice, Payment
+from .base import register_isp_connector, _ISPHTTPConnector, ContractDataType, TariffDataType, PaymentsDataType, \
+    ServicesDataType, InvoicesDataType, \
+    _ISPGenericSingleContractConnector
 from ..errors import SessionInitializationError, AuthenticationError, InvalidServerResponseError
-
-ContractDataType = Dict[str, Any]
-TariffDataType = Dict[str, Any]
 
 
 @register_isp_connector
-class AlmatelConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
-    isp_identifiers = ["almatel", "2kom"]
+class AlmatelConnector(_ISPGenericSingleContractConnector, _ISPHTTPConnector):
+    isp_identifiers = ["almatel", "2kom", "2com"]
     isp_title_ru = "Альмател"
     isp_title = "Almatel"
 
@@ -61,7 +59,12 @@ class AlmatelConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
             except json.JSONDecodeError:
                 raise InvalidServerResponseError(self) from None
 
-    async def _get_contract_tariff_data(self) -> Tuple[str, 'ContractDataType', 'TariffDataType']:
+    async def _get_contract_tariff_data(self) -> Tuple[str,
+                                                       ContractDataType,
+                                                       TariffDataType,
+                                                       Optional[ServicesDataType],
+                                                       Optional[PaymentsDataType],
+                                                       Optional[InvoicesDataType]]:
         async with aiohttp.ClientSession(cookie_jar=self._cookies) as session:
             home_page_url = self.BASE_LK_URL + '/index.php'
             async with session.get(home_page_url) as request:
@@ -125,11 +128,11 @@ class AlmatelConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
                 except KeyError:
                     raise InvalidServerResponseError(self)
 
-            return contract_code, contract_data, tariff_data
+            return contract_code, contract_data, tariff_data, None, None, None
 
-    @requires_authentication
-    async def update_contract(self, contract: '_ISPContract') -> None:
-        pass
+    @staticmethod
+    def hostname_belongs(hostname: str):
+        return '2com' in hostname or 'almatel' in hostname
 
     async def get_support_phones(self) -> Optional[List[str]]:
         async with aiohttp.ClientSession(cookie_jar=self._cookies) as session:
@@ -141,37 +144,3 @@ class AlmatelConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
 
                 if single_phone:
                     return [single_phone]
-
-
-class AlmatelContract(_ISPGenericContract):
-    @property
-    def payments(self) -> List[Payment]:
-        return []
-
-    @property
-    def invoices(self) -> List[Invoice]:
-        return []
-
-    @property
-    def bonuses(self) -> int:
-        return self._data['bonuses']
-
-    @property
-    def services(self) -> List['AlmatelService']:
-        return []  # self._data['services']
-
-
-AlmatelConnector.contract_class = AlmatelContract
-
-
-class AlmatelTariff(_ISPGenericTariff):
-    @property
-    def speed_unit(self) -> str:
-        return self._data['speed_unit']
-
-
-AlmatelConnector.tariff_class = AlmatelTariff
-
-
-class AlmatelService(_ISPService):
-    pass

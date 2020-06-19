@@ -1,23 +1,20 @@
 import asyncio
 import json
 import re
-from datetime import date
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, Tuple, Any, Optional
 
 import aiohttp
 from lxml import html
 
 from .base import register_isp_connector, _ISPHTTPConnector, \
-    Invoice, Payment, _ISPGenericContract, _ISPSingleContractConnector, _ISPGenericTariff, _ISPService
+    ContractDataType, TariffDataType, ServicesDataType, PaymentsDataType, InvoicesDataType, \
+    _ISPGenericSingleContractConnector
 from ..errors import SessionInitializationError, AuthenticationError, \
     InvalidServerResponseError
 
-ContractDataType = Dict[str, Any]
-TariffDataType = Dict[str, Any]
-
 
 @register_isp_connector
-class SevenSkyConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
+class SevenSkyConnector(_ISPGenericSingleContractConnector, _ISPHTTPConnector):
     isp_identifiers = ['sevensky', 'gorcom']
     isp_title_ru = 'SevenSky'
     isp_title = 'SevenSky'
@@ -45,9 +42,6 @@ class SevenSkyConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
 
             except json.JSONDecodeError:
                 raise InvalidServerResponseError(self) from None
-
-    async def logout(self) -> None:
-        pass
 
     async def _retrieve_contract_main(self, session: aiohttp.ClientSession) \
             -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
@@ -128,7 +122,12 @@ class SevenSkyConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
             except (IndexError, KeyError):
                 raise InvalidServerResponseError(self)
 
-    async def _get_contract_tariff_data(self) -> Tuple[str, 'ContractDataType', 'TariffDataType']:
+    async def _get_contract_tariff_data(self) -> Tuple[str,
+                                                       ContractDataType,
+                                                       TariffDataType,
+                                                       Optional[ServicesDataType],
+                                                       Optional[PaymentsDataType],
+                                                       Optional[InvoicesDataType]]:
         async with aiohttp.ClientSession(cookie_jar=self._cookies, headers={
             'Connection': 'keep-alive',
             'User-Agent': self._user_agent,
@@ -143,36 +142,4 @@ class SevenSkyConnector(_ISPSingleContractConnector, _ISPHTTPConnector):
 
         contract_data.update(results[1])
 
-        return contract_code, contract_data, tariff_data
-
-
-class SevenSkyContract(_ISPGenericContract):
-    @property
-    def payments(self) -> List[Payment]:
-        return []
-
-    @property
-    def invoices(self) -> List[Invoice]:
-        return []
-
-    @property
-    def services(self) -> List['SevenSkyService']:
-        return []
-
-    @property
-    def payment_until(self) -> Optional[date]:
-        return None
-
-
-SevenSkyConnector.contract_class = SevenSkyContract
-
-
-class SevenSkyTariff(_ISPGenericTariff):
-    pass
-
-
-SevenSkyConnector.tariff_class = SevenSkyTariff
-
-
-class SevenSkyService(_ISPService):
-    pass
+        return contract_code, contract_data, tariff_data, None, None, None

@@ -1,10 +1,14 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Tuple
+
+import logging
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 
 from .const import CONF_ISP, DOMAIN
 from .errors import AuthenticationError, InvalidServerResponseError, ISPCabinetException
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -22,8 +26,13 @@ class ISPCabinetFlowHandler(config_entries.ConfigFlow):
 
         self._schema_user = None
 
-    async def _check_entry_exists(self, isp_identifier: str, username: str):
+    def _check_entry_exists(self, key: Optional[Tuple[str, str]] = None):
         current_entries = self._async_current_entries()
+
+        if key is None:
+            return bool(current_entries)
+
+        isp_identifier, username = key
 
         for config_entry in current_entries:
             if config_entry.data[CONF_ISP] == isp_identifier and config_entry.data[CONF_USERNAME] == username:
@@ -31,16 +40,31 @@ class ISPCabinetFlowHandler(config_entries.ConfigFlow):
 
         return False
 
-    def _show_user_form(self, errors: Optional[Dict[str, str]] = None,
-                        placeholders: Optional[Dict[str, Union[str, int, float]]] = None):
+    async def _show_user_form(self, errors: Optional[Dict[str, str]] = None,
+                              placeholders: Optional[Dict[str, Union[str, int, float]]] = None):
         if self._schema_user is None:
             import voluptuous as vol
             from collections import OrderedDict
 
             from .supported_isps import ISP_CONNECTORS
 
+            default_isp = None
+
+            if not self._check_entry_exists():
+                from aiohttp import ClientSession
+
+                async with ClientSession() as session:
+                    async with session.get('http://ip-api.com/json/') as request:
+                        ip_api_data = await request.json()
+
+                for connector in ISP_CONNECTORS:
+                    if connector.ip_api_belongs(ip_api_data):
+                        _LOGGER.debug('Detected current ISP automatically: %s' % connector.isp_title)
+                        default_isp = connector.isp_identifiers[0]
+                        break
+
             schema_user = OrderedDict()
-            schema_user[CONF_ISP] = vol.In({
+            schema_user[vol.Required(CONF_ISP, default=default_isp)] = vol.In({
                 connector.isp_identifiers[0]: connector.isp_title
                 for connector in ISP_CONNECTORS
             })
@@ -57,12 +81,13 @@ class ISPCabinetFlowHandler(config_entries.ConfigFlow):
     async def async_step_user(self, user_input=None):
         """Handle a flow start."""
         if user_input is None:
-            return self._show_user_form()
+            return await self._show_user_form()
 
         isp_identifier = user_input[CONF_ISP]
         username = user_input[CONF_USERNAME]
+        key = (isp_identifier, username)
 
-        if await self._check_entry_exists(isp_identifier, username):
+        if self._check_entry_exists(key):
             return self.async_abort("already_exists")
 
         from .supported_isps import ISP_CONNECTORS
@@ -81,11 +106,7 @@ class ISPCabinetFlowHandler(config_entries.ConfigFlow):
             await api.login()
 
         except AuthenticationError:  # @TODO: more specific exception handling
-            return self.async_show_form(
-                step_id="user",
-                data_schema=self._schema_user,
-                errors={"base": "invalid_credentials"}
-            )
+            return await self._show_user_form(errors={"base": "invalid_credentials"})
 
         except InvalidServerResponseError:
             return self.async_abort("invalid_server_response")
@@ -102,7 +123,7 @@ class ISPCabinetFlowHandler(config_entries.ConfigFlow):
         isp_identifier = user_input[CONF_ISP]
         username = user_input[CONF_USERNAME]
 
-        if await self._check_entry_exists(isp_identifier, username):
+        if self._check_entry_exists((isp_identifier, username)):
             return self.async_abort("already_exists")
 
         isp_title = None
