@@ -20,12 +20,12 @@
 Также отдельные провайдеры поддерживают набор дополнительных атрибутов:
 
 <a name="providers_table"></a>
-| _Название_ | _Идентификатор_ | Рекомендуемый платёж<br>`payment_suggested` | Требуемый платёж<br>`payment_required`   | Бонусы<br>`bonuses`    | Адрес<br>`address`     | Клиент<br>`client`
-|-|-|-|-|-|-|-|
-| [Almatel<br>Альмател](https://almatel.ru) | `almatel`<br>`2kom` | Да<sup>1</sup> | Да | Да | Да | Да
-| [SevenSky<br>ГорКом](https://seven-sky.net) | `sevensky`<br>`gorcom` | Да<sup>1</sup> | Да | Нет | Да | Да |
-| [Sky Engineering](http://sky-en.ru) | `sky_engineering` | Да | Нет | Нет | Нет | Да |
-| [МГТС](https://mgts.ru) | `mgts`<br>`mts` | Да<sup>1</sup> | Да | Нет | Нет | Да
+| _Название_ | _Идентификатор_ | Рекомендуемый платёж<br>`payment_suggested` | Требуемый платёж<br>`payment_required` | Оплатить до<br>`payment_until` | Бонусы<br>`bonuses`    | Адрес<br>`address`     | Клиент<br>`client`
+|-|-|-|-|-|-|-|-|
+| [Almatel<br>Альмател](https://almatel.ru) | `almatel`<br>`2kom` | Да<sup>1</sup> | Да | Да | Да | Да | Да
+| [SevenSky<br>ГорКом](https://seven-sky.net) | `sevensky`<br>`gorcom` | Да<sup>1</sup> | Да | Да | Нет | Да | Да |
+| [Sky Engineering](http://sky-en.ru) | `sky_engineering` | Да | Нет | Да | Нет | Нет | Да |
+| [МГТС](https://mgts.ru) | `mgts`<br>`mts` | Да<sup>1</sup> | Да | Да | Нет | Нет | Да
 | Акадо | _в разработке_ |
 
 <sup>1</sup> Атрибут вычисляется посредством вычета текущего состояния баланса из ежемесячной стоимости тарифа.
